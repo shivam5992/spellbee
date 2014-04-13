@@ -1,7 +1,7 @@
 from pprint import pprint
 import re
 
-data = open("sentiwordnet.txt", "r").read()
+data = open("data/sentiwordnet.txt", "r").read()
 lines = data.split("\n")
 out = open("out.txt","w")
 result = []
