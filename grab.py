@@ -1,12 +1,12 @@
 import requests
 import re
-import mydic
 import stopwords
 import string
-from BeautifulSoup import BeautifulSoup
-from nltk import stem
-from nltk.stem.wordnet import WordNetLemmatizer
 import HTMLParser
+import collections
+from nltk import stem
+from BeautifulSoup import BeautifulSoup
+from nltk.stem.wordnet import WordNetLemmatizer
 
 def visible(element):
     if element.parent.name in ['style', 'script', '[document]', 'head', 'title','noscript','link']:
@@ -65,20 +65,55 @@ def mystemmer(word):
 	
 	return word, worde
 
-if __name__ == '__main__':
-	url = "http://indianautosblog.com/2014/04/honda-mobilio-website-launched-127379"
-	
+def db_create():
+	data = open("dependency/datasource1.txt", "r").read()
+	lines = data.split("\n")
+	out = open("out1.txt","w")
+	result = []
+	for x,line in enumerate(lines):
+		print x
+		line = line.split("	")
+		word = line[4]
+		mWords = word.split(" ")
+		if len(mWords) != 1:	
+			for word in mWords:
+				index = word.find('#')
+				if index > -1:
+					word = word[:index]
+				out.write(word + "\n")
+		else:
+			index = word.find('#')
+			if index > -1:
+				word = word[:index]
+			out.write(word + "\n")
+
+def words(text): return re.findall('[a-z]+', text.lower()) 
+
+def train(features):
+    model = collections.defaultdict(lambda: 1)
+    for f in features:
+        model[f] += 1
+    return model
+
+def db_create_source2():
+	NWORDS = train(words(file('dependency/datasource2.txt').read()))
+
+if __name__ == '__main__':	
 	exclude = list(set(string.punctuation))
 	snowball = stem.snowball.EnglishStemmer()
 	lmtzr = WordNetLemmatizer()
 	custom_list1 = open("data/verbs.txt").read().split("\n")
 	custom_list2 = open("data/websitesandother.txt").read().split("\n")
 
+	# dataset1 = db_create()
+	# dataset2 = db_create_source2()
+	# loaded = sorted(list(set(dataset1 + dataset2)))
 
-	article = get_text(url)
-	#article = open("data/random_text.txt").read()
+	url = "http://en.wikipedia.org/wiki/Basketball"
+	#article = get_text(url)
+	article = open("data/random_text.txt").read()
 	word_list = article.lower().split()
-
+	loaded = open("dataset/final.txt").read().split("\n")
 	possibles = []
 	for word in word_list:
 		flag = 0
@@ -90,15 +125,15 @@ if __name__ == '__main__':
  					flag = 1
  			if flag == 0:
  				try:
-	 				if word in mydic.mydic:
+	 				if word in loaded:
 						pass
-					elif snowball.stem(word) in mydic.mydic:
+					elif snowball.stem(word) in loaded:
 						pass
-					elif lmtzr.lemmatize(word) in mydic.mydic:
+					elif lmtzr.lemmatize(word) in loaded:
 						pass
-					elif mystemmer(word)[0] in mydic.mydic:
+					elif mystemmer(word)[0] in loaded:
 						pass
-					elif mystemmer(word)[1] in mydic.mydic:
+					elif mystemmer(word)[1] in loaded:
 						pass
 					elif word in custom_list1:
 						pass
@@ -112,5 +147,3 @@ if __name__ == '__main__':
 	possibles = sorted(list(set(possibles)))
 	for word in possibles:
 		print word
-
-''' LEFT NER'''
