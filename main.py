@@ -2,7 +2,7 @@ from Levenshtein import *
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk import stem, pos_tag
 from stopwords import stopwords
-from mydic import mydic
+from res import mydic
 
 
 snowball = stem.snowball.EnglishStemmer()
@@ -18,32 +18,42 @@ def corrector(text):
 	print
 	words = text.split()
 	for query in words:
-		print 
-		query = query.lower()
-		got = False
+		print
 
-		if query in mydic:
-		 	print query, ":" , mydic[query]
-		 	got = True
+		if len(query) > 1:
+			if len(query) > 3:
+				opt = 3
+			elif len(query) == 2:
+				opt = 2
+			else:
+				opt = 1
 
-		elif query in stopwords:
-			print query, ":" , query
-			got = True
 
-		else:
-			max_ratio = 0
-			possibles = []
-			for stop in stopwords:
-				stop = str(stop)
-				if distance(stop, query) < 3:
-					rat = ratio(stop, query)
-					if rat > max_ratio:
-						closest = stop
-						max_ratio_so_far = rat
-						possibles.append(stop)
-			if max_ratio != 0:
-				print query, ":", closest, "(or " , ", ".join(possibles[:10][:-1]), ")"
+			query = query.lower()
+			got = False
+
+			if query in mydic:
+			 	print query, ":" , mydic[query]
+			 	got = True
+
+			elif query in stopwords:
+				print query, ":" , query
 				got = True
+
+			else:
+				max_ratio = 0
+				possibles = []
+				for stop in stopwords:
+					stop = str(stop)
+					if distance(stop, query) < opt:
+						rat = ratio(stop, query)
+						if rat > max_ratio:
+							closest = stop
+							max_ratio_so_far = rat
+							possibles.append(stop)
+				if max_ratio != 0:
+					print query, ":", closest, "(or " , ", ".join(possibles[:10][:-1]), ")"
+					got = True
 
 
 		
@@ -52,7 +62,7 @@ def corrector(text):
 			possibles = []
 			for key, value in mydic.iteritems():
 				key = str(key)
-				if distance(key, query) < 3:
+				if distance(key, query) < opt:
 					rat = ratio(key, query)
 					if rat > max_ratio_so_far:
 						closest = value
