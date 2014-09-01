@@ -1,84 +1,139 @@
-from Levenshtein import *
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk import stem, pos_tag
-from stopwords import stopwords
-from res import mydic
+'''
+Name: Spell Corrector in Python
+Version: 1.0
 
+author: Shivam Bansal
+author_email = shivam5992@gmail.com
 
-snowball = stem.snowball.EnglishStemmer()
-lmtzr = WordNetLemmatizer()
+'''
 
-def similarity(text1, text2):
-	text1 = sorted(text1)
-	text2 = sorted(text2)
-	print text1, text2
+try:
+	from nltk.stem.wordnet import WordNetLemmatizer
+	from nltk import stem, pos_tag
+	from Levenshtein import *
+	from stopwords import stopwords
+	from myWordNet import myWordNet
+except ImportError as IE:
+	print str(IE)
 
-def corrector(text):
-	print "Query: " + text
-	print
-	words = text.split()
-	for query in words:
-		print
+class SpellCheck():
 
-		if len(query) > 1:
-			if len(query) > 3:
-				opt = 3
-			elif len(query) == 2:
-				opt = 2
-			else:
-				opt = 1
+	'''
+    Main class for spell checking.
+    '''
 
+	def __init__(self):
+		self.snowball = stem.snowball.EnglishStemmer()
+		self.lmtzr = WordNetLemmatizer()
+		self.max_error_length = 12
+		self.max_suggestions = 10
 
-			query = query.lower()
-			got = False
+	def _clean(self, text):
+		''' 
+		Cleans a text, handles decoding and encodings, html escaping etc.
+		Third party package will be used in future versions.
+		'''
 
-			if query in mydic:
-			 	print query, ":" , mydic[query]
-			 	got = True
+		return str(text.strip())
 
-			elif query in stopwords:
-				print query, ":" , query
-				got = True
+	def _get_threshold(self, text):
+		'''
+		Decides the threshold for error limit in spellings, 
+		depends on length of the word.
+		'''
 
-			else:
-				max_ratio = 0
-				possibles = []
-				for stop in stopwords:
-					stop = str(stop)
-					if distance(stop, query) < opt:
-						rat = ratio(stop, query)
-						if rat > max_ratio:
-							closest = stop
-							max_ratio_so_far = rat
-							possibles.append(stop)
-				if max_ratio != 0:
-					print query, ":", closest, "(or " , ", ".join(possibles[:10][:-1]), ")"
-					got = True
+		if len(text) > 3:
+			return 3
+		else:
+			return len(text)
 
+	def _checkLevdis(self, query, listname, threshold, isDict):
+		'''
+		Checks the Levenshtein distance between query and db, 
+		and returns the possible suggestions
+		'''
 
-		
-		if got == False:
-			max_ratio_so_far = 0
-			possibles = []
-			for key, value in mydic.iteritems():
-				key = str(key)
-				if distance(key, query) < opt:
-					rat = ratio(key, query)
-					if rat > max_ratio_so_far:
+		maxRatio = 0
+		possibles = []
+		closest = query
+
+		if isDict:
+			for each, value in listname:
+				each = str(each)
+				if distance(each, query) < threshold:
+					WordRatio = ratio(each, query)
+					if WordRatio > maxRatio:
 						closest = value
-						max_ratio_so_far = rat
+						maxRatio = WordRatio
 						possibles.append(value)
-			if max_ratio_so_far != 0:
-				print query, ":", closest, "(or " , ", ".join(possibles[:10][:-1]), ")"
-				got = True
 
-		if got == False:		
-			for key, value in mydic.iteritems():
-				if snowball.stem(query) in mydic:
-					print query, ":" ,value
-					got = True
-				elif lmtzr.lemmatize(query) in mydic:
-					print query, ":" ,value
-					got = True
+		else:
+			for each in listname:
+				each = str(each)
+				if distance(each, query) < threshold:
+					WordRatio = ratio(each, query)
+					if WordRatio > maxRatio:
+						closest = each
+						maxRatio = WordRatio
+						possibles.append(each)
 
-corrector("This is my querye detectixon tassk ahowever i donnt knoz whar to do")
+		return closest, possibles, maxRatio
+
+	def _correct(self, text):
+		''' 
+		Checks the input string and gives spelling suggestions as output
+		
+		:param str text: input text with spelling mistakes
+		'''
+
+		string = self._clean(text)
+		words = string.split()
+
+		suggestions = []
+		for ind, query in enumerate(words):
+			query = query.strip()
+
+			if len(query) == 1:
+				if query == 'i':
+					suggestions.append(('I', []))
+			elif len(query) < self.max_error_length:
+				
+				threshold = self._get_threshold(query)	
+				query = query.lower()
+				
+				corrected = False
+				if query in myWordNet:
+				 	suggestions.append((myWordNet[query], []))
+				 	corrected = True
+
+				elif query in stopwords:
+					suggestions.append((query, []))
+				 	corrected = True
+
+				else:
+					closest, possibles, maxRatio = self._checkLevdis(query, stopwords, threshold, False)
+					if maxRatio != 0:
+						suggestions.append((closest, possibles[:self.max_suggestions][:-1]))
+						corrected = True
+
+			if corrected == False:
+				closest, possibles, maxRatio = self._checkLevdis(query, myWordNet.iteritems(), threshold, True)
+				if maxRatio != 0:
+					suggestions.append((closest, possibles[:self.max_suggestions][:-1]))
+					corrected = True
+
+			if corrected == False:		
+				for key, value in myWordNet.iteritems():
+					if self.snowball.stem(query) in myWordNet:
+						suggestions.append((value, []))
+						corrected = True
+					elif self.lmtzr.lemmatize(query) in myWordNet:
+						suggestions.append((value, []))
+						corrected = True
+		return suggestions
+
+if __name__ == '__main__':
+	string = "This is my querye detectix0n tassk ahowever i donnt knoz whar to do"
+	suggestions = SpellCheck()._correct(string)
+	for x in suggestions:
+		print x

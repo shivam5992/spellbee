@@ -1,4 +1,4 @@
-mydic = {
+myWordNet = {
 'aaaah':'aaaah',
 'aaah':'aaah',
 'aachen':'aachen',
