@@ -25,7 +25,7 @@ class SpellCheck():
 	def __init__(self):
 		self.snowball = stem.snowball.EnglishStemmer()
 		self.lmtzr = WordNetLemmatizer()
-		self.max_error_length = 12
+		self.max_error_length = 15
 		self.max_suggestions = 10
 
 	def _clean(self, text):
@@ -60,12 +60,13 @@ class SpellCheck():
 		if isDict:
 			for each, value in listname:
 				each = str(each)
-				if distance(each, query) < threshold:
-					WordRatio = ratio(each, query)
-					if WordRatio > maxRatio:
-						closest = value
-						maxRatio = WordRatio
-						possibles.append(value)
+				if len(each) < self.max_error_length:
+					if distance(each, query) < threshold:
+						WordRatio = ratio(each, query)
+						if WordRatio > maxRatio:
+							closest = value
+							maxRatio = WordRatio
+							possibles.append(value)
 
 		else:
 			for each in listname:
@@ -133,7 +134,7 @@ class SpellCheck():
 		return suggestions
 
 if __name__ == '__main__':
-	string = "This is my querye detectix0n tassk ahowever i donnt knoz whar to do"
+	string = "True meaningd og ffish is noting"
 	suggestions = SpellCheck()._correct(string)
 	for x in suggestions:
 		print x
