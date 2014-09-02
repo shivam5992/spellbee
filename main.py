@@ -45,7 +45,7 @@ class SpellCheck():
 		if len(text) > 3:
 			return 3
 		else:
-			return len(text)
+			return 1
 
 	def _checkLevdis(self, query, listname, threshold, isDict):
 		'''
@@ -71,14 +71,26 @@ class SpellCheck():
 		else:
 			for each in listname:
 				each = str(each)
-				if distance(each, query) < threshold:
+				if threshold == 1 and distance(each, query) <= threshold:
+					closest = each
+					possibles.append(each)
+				elif distance(each, query) < threshold:
 					WordRatio = ratio(each, query)
 					if WordRatio > maxRatio:
 						closest = each
 						maxRatio = WordRatio
 						possibles.append(each)
 
+
 		return closest, possibles, maxRatio
+
+	def _stopwordCheck(self, query):
+
+		if query in stopwords:
+			return (query, [])
+		else:
+			closest, possibles, maxRatio = self._checkLevdis(query, stopwords, 1, False)
+			return (closest, possibles[:self.max_suggestions][:-1])
 
 	def _correct(self, text):
 		''' 
@@ -97,6 +109,9 @@ class SpellCheck():
 			if len(query) == 1:
 				if query == 'i':
 					suggestions.append(('I', []))
+			elif len(query) == 2:
+				suggestions.append(self._stopwordCheck(query))
+
 			elif len(query) < self.max_error_length:
 				
 				threshold = self._get_threshold(query)	
