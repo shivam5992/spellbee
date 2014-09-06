@@ -1,5 +1,6 @@
 '''
-Name: Spell Corrector in Python
+Name: Spellbee
+Description: Spelling Corrector in Python
 Version: 1.0
 
 author: Shivam Bansal
@@ -8,11 +9,9 @@ author_email = shivam5992@gmail.com
 '''
 
 try:
-	from nltk.stem.wordnet import WordNetLemmatizer
-	from nltk import stem, pos_tag
 	from Levenshtein import *
-	from stopwords import stopwords
-	from myWordNet import myWordNet
+	from lookups.stopwords import stopwords
+	from lookups.myWordNet import myWordNet
 except ImportError as IE:
 	print str(IE)
 
@@ -23,8 +22,6 @@ class SpellCheck():
     '''
 
 	def __init__(self):
-		self.snowball = stem.snowball.EnglishStemmer()
-		self.lmtzr = WordNetLemmatizer()
 		self.max_error_length = 15
 		self.max_suggestions = 10
 
@@ -42,9 +39,11 @@ class SpellCheck():
 		depends on length of the word.
 		'''
 
-		if len(text) > 3:
+		if len(text) > 5:
 			return 3
-		else:
+		elif len(text) > 3 and len(text) <= 5:
+			return 2
+		else:   
 			return 1
 
 	def _checkLevdis(self, query, listname, threshold, isDict):
@@ -81,16 +80,20 @@ class SpellCheck():
 						maxRatio = WordRatio
 						possibles.append(each)
 
-
 		return closest, possibles, maxRatio
 
-	def _stopwordCheck(self, query):
-
+	def _stopwordCheck(self, query, threshold):
 		if query in stopwords:
 			return (query, [])
 		else:
-			closest, possibles, maxRatio = self._checkLevdis(query, stopwords, 1, False)
-			return (closest, possibles[:self.max_suggestions][:-1])
+			closest, possibles, maxRatio = self._checkLevdis(query, stopwords, threshold, False)
+			if threshold == 1:
+				if maxRatio == 0:
+					return (closest, possibles[:self.max_suggestions][:-1]) 
+			if maxRatio != 0:
+				return (closest, possibles[:self.max_suggestions][:-1])
+			else:
+				return None
 
 	def _correct(self, text):
 		''' 
@@ -104,52 +107,59 @@ class SpellCheck():
 
 		suggestions = []
 		for ind, query in enumerate(words):
+			corrected = False
 			query = query.strip()
+			query = query.lower()
 
+			
 			if len(query) == 1:
 				if query == 'i':
 					suggestions.append(('I', []))
-			elif len(query) == 2:
-				suggestions.append(self._stopwordCheck(query))
-
-			elif len(query) < self.max_error_length:
-				
-				threshold = self._get_threshold(query)	
-				query = query.lower()
-				
-				corrected = False
-				if query in myWordNet:
-				 	suggestions.append((myWordNet[query], []))
-				 	corrected = True
-
-				elif query in stopwords:
-					suggestions.append((query, []))
-				 	corrected = True
-
 				else:
-					closest, possibles, maxRatio = self._checkLevdis(query, stopwords, threshold, False)
-					if maxRatio != 0:
-						suggestions.append((closest, possibles[:self.max_suggestions][:-1]))
-						corrected = True
+					suggestions.append((query, []))
+				corrected = True
+			
 
-			if corrected == False:
-				closest, possibles, maxRatio = self._checkLevdis(query, myWordNet.iteritems(), threshold, True)
-				if maxRatio != 0:
-					suggestions.append((closest, possibles[:self.max_suggestions][:-1]))
+			elif len(query) == 2:
+				res = self._stopwordCheck(query, 1)
+				if res != None:
+					suggestions.append(res)
 					corrected = True
+				else:
+					corrected = False
+					suggestions.append((query, []))
 
-			if corrected == False:		
-				for key, value in myWordNet.iteritems():
-					if self.snowball.stem(query) in myWordNet:
-						suggestions.append((value, []))
-						corrected = True
-					elif self.lmtzr.lemmatize(query) in myWordNet:
-						suggestions.append((value, []))
-						corrected = True
+
+			elif len(query) < self.max_error_length:				
+				threshold = self._get_threshold(query)	
+				
+				res = self._stopwordCheck(query, threshold)
+				if res != None:
+					suggestions.append(res)
+				else:
+					if query in myWordNet:
+				 		suggestions.append((myWordNet[query], []))
+				 		corrected = True
+
+					if corrected == False:
+						closest, possibles, maxRatio = self._checkLevdis(query, myWordNet.iteritems(), threshold, True)
+						if maxRatio != 0:
+							suggestions.append((closest, possibles[:self.max_suggestions][:-1]))
+							corrected = True
+
+						else:
+							suggestions.append((query, []))
+
 		return suggestions
 
-if __name__ == '__main__':
-	string = "True meaningd og ffish is noting"
-	suggestions = SpellCheck()._correct(string)
-	for x in suggestions:
-		print x
+spellbee = SpellCheck()
+
+
+
+
+
+
+
+
+
+
